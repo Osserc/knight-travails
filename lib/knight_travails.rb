@@ -1,9 +1,29 @@
 module Moves
 
     def move_piece(board, destination)
-        board.board[@position] = " "
-        @position = destination
-        board.board[destination] = @symbol
+        if check_legality(destination)
+            board.board[@position] = " "
+            @position = destination
+            board.board[destination] = @symbol
+        else
+            puts "Illegal move."
+        end
+    end
+
+    def check_legality(destination)
+        moves = define_moveset
+        differential = destination - @position
+        return true if moves.include?(differential)
+        return false
+    end
+
+    def define_moveset
+        case self.class.name
+        when "Knight"
+            moves = self.class::STANDARD_MOVESET
+        else
+            puts "Gombloddo"
+        end
     end
 
 end
@@ -63,7 +83,8 @@ class Knight
     def initialize(board, player = 1)
         @player = player
         @symbol = "K"
-        @position = rand(0..63)
+        @position = 50
+        # @position = rand(0..63)
         board.board[@position] = @symbol
     end
 
@@ -80,8 +101,9 @@ chess = Board.new
 chess.make_board
 horsey = Knight.new(chess)
 chess.display_board
-# puts horsey.position
-# puts horsey.convert_back_to_front(horsey.position)
-# horsey.move_piece(chess, 53)
-# puts horsey.position
-# puts horsey.convert_back_to_front(horsey.position)
+puts horsey.position
+puts horsey.convert_back_to_front(horsey.position)
+horsey.move_piece(chess, 35)
+chess.display_board
+puts horsey.position
+puts horsey.convert_back_to_front(horsey.position)
