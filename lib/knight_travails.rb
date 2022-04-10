@@ -1,5 +1,11 @@
 module Moves
 
+    def move_piece(board, destination)
+        board.board[@position] = " "
+        @position = destination
+        board.board[destination] = @symbol
+    end
+
 end
 
 module Navigation
@@ -29,11 +35,20 @@ class Board
     end
 
     def make_board
-        Array.new(64, nil)
+        Array.new(64, " ")
     end
 
     def display_board
-
+        i = 0
+        b = 0
+        print "   | " + NUMBERS.join(" | ").to_s + " |\n"
+        print "---+---+---+---+---+---+---+---+---+\n"
+        until i == 8 && b == 64
+            print " " + LETTERS[i] + " | " + @board.slice(b, 8).join(" | ").to_s + " |\n"
+            print "---+---+---+---+---+---+---+---+---+\n"
+            i += 1
+            b += 8
+        end
     end
 
 end
@@ -52,11 +67,11 @@ class Knight
         board.board[@position] = @symbol
     end
 
-    def move_piece(board, destination)
-        board.board[@position] = nil
-        @position = destination
-        board.board[destination] = @symbol
-    end
+    # def move_piece(board, destination)
+    #     board.board[@position] = " "
+    #     @position = destination
+    #     board.board[destination] = @symbol
+    # end
 
 end
 
@@ -64,8 +79,9 @@ end
 chess = Board.new
 chess.make_board
 horsey = Knight.new(chess)
-puts horsey.position
-puts horsey.convert_back_to_front(horsey.position)
-horsey.move_piece(chess, 53)
-puts horsey.position
-puts horsey.convert_back_to_front(horsey.position)
+chess.display_board
+# puts horsey.position
+# puts horsey.convert_back_to_front(horsey.position)
+# horsey.move_piece(chess, 53)
+# puts horsey.position
+# puts horsey.convert_back_to_front(horsey.position)
