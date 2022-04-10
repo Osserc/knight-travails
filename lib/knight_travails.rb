@@ -4,7 +4,7 @@ module Moves
         if check_legality(destination)
             board.board[@position] = " "
             @position = destination
-            board.board[destination] = @symbol
+            board.board[destination] = self
         else
             puts "Illegal move."
         end
@@ -64,7 +64,15 @@ class Board
         print "   | " + NUMBERS.join(" | ").to_s + " |\n"
         print "---+---+---+---+---+---+---+---+---+\n"
         until i == 8 && b == 64
-            print " " + LETTERS[i] + " | " + @board.slice(b, 8).join(" | ").to_s + " |\n"
+            # row = @board.slice(b, 8)
+            # row.map! do | element |
+            #     if element.class.ancestors.include?(Piece)
+            #         self.symbol
+            #     else
+            #         element
+            #     end
+            # end
+            print " " + LETTERS[i] + " | " + @board.slice(b, 8).map { | element | element.class.ancestors.include?(Piece) ? element.symbol : element }.join(" | ").to_s + " |\n"
             print "---+---+---+---+---+---+---+---+---+\n"
             i += 1
             b += 8
@@ -73,26 +81,25 @@ class Board
 
 end
 
+# print " " + LETTERS[i] + " | " + @board.slice(b, 8).map { | element | element = self.@symbol if element.class.name == "Piece" }.join(" | ").to_s + " |\n"
+# print " " + LETTERS[i] + " | " + @board.slice(b, 8).join(" | ").to_s + " |\n"
 
+class Piece
 
-class Knight
+end
+
+class Knight < Piece
     attr_accessor :position
+    attr_reader :symbol
     include Moves, Navigation
     STANDARD_MOVESET = [10, -15, -6, 17, 15, 6, -10, 17]
 
     def initialize(board, player = 1)
         @player = player
         @symbol = "K"
-        @position = 50
-        # @position = rand(0..63)
-        board.board[@position] = @symbol
+        @position = rand(0..63)
+        board.board[@position] = self
     end
-
-    # def move_piece(board, destination)
-    #     board.board[@position] = " "
-    #     @position = destination
-    #     board.board[destination] = @symbol
-    # end
 
 end
 
@@ -103,7 +110,7 @@ horsey = Knight.new(chess)
 chess.display_board
 puts horsey.position
 puts horsey.convert_back_to_front(horsey.position)
-horsey.move_piece(chess, 35)
-chess.display_board
-puts horsey.position
-puts horsey.convert_back_to_front(horsey.position)
+# horsey.move_piece(chess, 35)
+# chess.display_board
+# puts horsey.position
+# puts horsey.convert_back_to_front(horsey.position)
