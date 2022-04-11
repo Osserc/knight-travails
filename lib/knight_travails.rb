@@ -116,7 +116,7 @@ module Calculate_Path
         moves
     end
 
-    def shortest_path(destination)
+    def shortest_path(board, destination)
         visited_squares = Array.new
         list = Node_List.new(@position)
         queue = Array.new
@@ -126,6 +126,8 @@ module Calculate_Path
         last_child = build_graph(visited_squares, queue, batch, destination)
         ancestry = build_genealogy(last_child)
         unwind_ancestry(ancestry)
+        show_path(board, ancestry)
+        start_over(board)
     end
 
     def build_graph(visited_squares, queue, batch, destination)
@@ -174,6 +176,43 @@ module Calculate_Path
         end
     end
 
+    def show_path(board, ancestry)
+        puts "Would you like to see your knight gallop across the board? Enter yes or no."
+        answer = decision_check
+        if answer == "YES"
+            i = 0
+            until i == ancestry.length
+                self.move_piece(board, ancestry[i])
+                board.display_board
+                i += 1
+                puts "What a good little horsey!" if i == ancestry.length
+                puts "Press Enter to proceed."                
+                gets
+            end
+        else
+            return
+        end
+    end
+    
+    def decision_check
+        answer = gets.chomp.upcase
+        until answer == "YES" || answer == "NO"
+            puts "Please answer properly."
+            answer = gets.chomp.upcase
+        end
+        answer
+    end
+
+    def start_over(board)
+        puts "Would you like to start over? Enter yes or no."
+        answer = decision_check
+        if answer == "YES"
+            board.start
+        else
+            exit
+        end
+    end
+            
 end
 
 class Board
@@ -182,6 +221,14 @@ class Board
 
     def initialize
         @board = make_board
+    end
+
+    def start
+        chess = Board.new
+        chess.make_board
+        horsey = Knight.new(chess, chess.place_knight)
+        chess.display_board
+        horsey.shortest_path(chess, chess.define_journey)
     end
 
     def make_board
@@ -201,6 +248,33 @@ class Board
         end
     end
 
+    def place_knight
+        puts "Welcome to Knight's Travails! Where would you like your knight to start his journey from? Insert the position in notation, e.g. A2"
+        input_loop
+    end
+
+    def define_journey
+        puts "Where would you like your knight to travel to?"
+        input_loop
+    end
+
+    def input_loop
+        answer = gets.chomp.upcase
+        until check_coords_input(answer)
+            puts "Invalid coordinates.\nPlease insert a valid starting spot."
+            answer = gets.chomp.upcase
+        end
+        convert_front_to_back(answer)
+    end
+
+    def check_coords_input(input)
+        if input.length == 2 && LETTERS.include?(input[0]) && NUMBERS.include?(input[1].to_i)
+            return true
+        else
+            return false
+        end
+    end
+
 end
 
 class Piece
@@ -213,19 +287,13 @@ class Knight < Piece
     include Moves, Navigation, Calculate_Path
     STANDARD_MOVESET = [-17, -15, 17, 15, -10, 6, 10, -6]
 
-    def initialize(board, player = 1)
+    def initialize(board, position, player = 1)
         @player = player
-        @symbol = "K"
-        @position = 17
-        # @position = rand(0..63)
+        @symbol = "N"
+        @position = position
         board.board[@position] = self
     end
 
 end
 
-
-
-chess = Board.new
-chess.make_board
-horsey = Knight.new(chess)
-horsey.shortest_path(61)
+Board.new.start
