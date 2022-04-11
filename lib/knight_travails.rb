@@ -1,4 +1,4 @@
-module Border
+module Borders
     TOP_BORDER = (0..7).to_a
     LEFT_BORDER = [0, 8, 16, 24, 32, 40, 48, 56]
     RIGHT_BORDER = [7, 15, 23, 31, 39, 47, 55, 63]
@@ -6,19 +6,36 @@ module Border
 end
 
 module Knight_Limitations
+    include Borders
     UPPER_BOUND = (9..14).to_a
-    UPPER_LIMITATIONS = [-17, -15]
+    UPPER_LIMITATIONS = [-17, -15, -10, -6]
+    UPPER__BOUND_LIMITATIONS = [-17, -15]
     LEFT_BOUND = [9, 17, 25, 33, 41, 49]
-    LEFT_LIMITATIONS = [-10, 6]
+    LEFT_LIMITATIONS = [-17, -10, 6, 15]
+    LEFT__BOUND_LIMITATIONS = [-10, 6]
     RIGHT_BOUND = [14, 22, 30, 38, 46, 54]
-    RIGHT_LIMITATIONS = [-6, 10]
+    RIGHT_LIMITATIONS = [-15, -6, 10, 17]
+    RIGHT_BOUND_LIMITATIONS = [-6, 10]
     LOWER_BOUND = (49..54).to_a
-    LOWER_LIMITATIONS = [17, 15]
+    LOWER_LIMITATIONS = [17, 15, 10, 6]
+    LOWER__BOUND_LIMITATIONS = [17, 15]
+
+    def check_borders(moves)
+        moves -= UPPER_LIMITATIONS if TOP_BORDER.include?(self.position) 
+        moves -= UPPER__BOUND_LIMITATIONS if UPPER_BOUND.include?(self.position)
+        moves -= LEFT_LIMITATIONS if LEFT_BORDER.include?(self.position)
+        moves -= LEFT__BOUND_LIMITATIONS if LEFT_BOUND.include?(self.position)
+        moves -= RIGHT_LIMITATIONS if RIGHT_BORDER.include?(self.position)
+        moves -= RIGHT_BOUND_LIMITATIONS if RIGHT_BOUND.include?(self.position)
+        moves -= LOWER_LIMITATIONS if BOTTOM_BORDER.include?(self.position)
+        moves -= LOWER__BOUND_LIMITATIONS if LOWER_BOUND.include?(self.position)
+        moves
+    end
 
 end
 
 module Moves
-    include Border, Knight_Limitations
+    include Knight_Limitations
     def move_piece(board, destination)
         if check_legality(destination)
             board.board[@position] = " "
@@ -32,10 +49,8 @@ module Moves
     def define_moveset
         case self.class.name
         when "Knight"
-            moves = self.class::STANDARD_MOVESET
+            moves = Array.new.concat(self.class::STANDARD_MOVESET)
             moves = check_borders(moves)
-        else
-            puts "Gombloddo"
         end
     end
 
@@ -46,15 +61,27 @@ module Moves
         return false
     end
 
-    def check_borders(moves)
-        moves -= UPPER_LIMITATIONS if TOP_BORDER.include?(self.position) || UPPER_BOUND.include?(self.position)
-        moves -= LEFT_LIMITATIONS if LEFT_BORDER.include?(self.position) || LEFT_BOUND.include?(self.position)
-        moves -= RIGHT_LIMITATIONS if RIGHT_BORDER.include?(self.position) || RIGHT_BOUND.include?(self.position)
-        moves -= LOWER_LIMITATIONS if BOTTOM_BORDER.include?(self.position) || LOWER_BOUND.include?(self.position)
-        moves
+end
+
+class Node_List
+    attr_accessor :head
+
+    def initialize(position)
+        @head = Node.new(position)
     end
 
 end
+
+class Node
+    attr_accessor :local, :parent, :children
+    def initialize(local, parent = nil, children = Array.new)
+        @local = local
+        @parent = parent
+        @children = children
+    end
+
+end
+
 
 module Navigation
 
@@ -64,12 +91,87 @@ module Navigation
 
     def convert_back_to_front(index)
         converted = BOARD_UI[index]
-        puts converted
+        converted
     end
 
     def convert_front_to_back(coords)
         converted = BOARD_UI.index(coords)
-        puts converted
+        converted
+    end
+
+end
+
+module Calculate_Path
+    include Borders, Knight_Limitations, Navigation
+    def define_moveset_internal(position)
+        moves = Array.new.concat(self.class::STANDARD_MOVESET)
+        moves -= UPPER_LIMITATIONS if TOP_BORDER.include?(position) 
+        moves -= UPPER__BOUND_LIMITATIONS if UPPER_BOUND.include?(position)
+        moves -= LEFT_LIMITATIONS if LEFT_BORDER.include?(position)
+        moves -= LEFT__BOUND_LIMITATIONS if LEFT_BOUND.include?(position)
+        moves -= RIGHT_LIMITATIONS if RIGHT_BORDER.include?(position)
+        moves -= RIGHT_BOUND_LIMITATIONS if RIGHT_BOUND.include?(position)
+        moves -= LOWER_LIMITATIONS if BOTTOM_BORDER.include?(position)
+        moves -= LOWER__BOUND_LIMITATIONS if LOWER_BOUND.include?(position)
+        moves
+    end
+
+    def shortest_path(destination)
+        visited_squares = Array.new
+        list = Node_List.new(@position)
+        queue = Array.new
+        batch = Array.new
+        batch.push(list.head)
+        queue.push(list.head)
+        last_child = build_graph(visited_squares, queue, batch, destination)
+        ancestry = build_genealogy(last_child)
+        unwind_ancestry(ancestry)
+    end
+
+    def build_graph(visited_squares, queue, batch, destination)
+        until batch.empty?
+            explorer = batch[0]
+            moves = define_moveset_internal(explorer.local)
+            until moves.empty?
+                if explorer.local + moves[0] == destination
+                    return entry = Node.new(explorer.local + moves[0], explorer)
+                else
+                    queue.push(Node.new(explorer.local + moves[0], explorer)) unless visited_squares.include?(explorer.local + moves[0]) || find_child(explorer)
+                    moves.shift
+                end
+            end
+            batch.shift
+            visited_squares.push(explorer.local)
+            queue.shift
+        end
+        batch.concat(queue)
+        build_graph(visited_squares, queue, batch, destination)
+    end
+
+    def find_child(explorer)
+        explorer.children.each do | child |
+            return true if child.local == explorer.local
+        end
+        false
+    end
+
+    def build_genealogy(child)
+        ancestry = Array.new
+        until child.parent.nil?
+            ancestry.push(child.local)
+            child = child.parent
+        end
+        ancestry.reverse
+    end
+
+    def unwind_ancestry(ancestry)
+        i = 0
+        count = ancestry.length
+        puts "From #{convert_back_to_front(@position)}, the shortest path to #{convert_back_to_front(ancestry.last)} is made of #{count} moves:\n[#{convert_back_to_front(@position)}, #{convert_back_to_front(ancestry.first)}]"
+        until i == count - 1
+            puts "[#{convert_back_to_front(ancestry[i])}, #{convert_back_to_front(ancestry[i + 1])}]"
+            i += 1
+        end
     end
 
 end
@@ -101,9 +203,6 @@ class Board
 
 end
 
-# print " " + LETTERS[i] + " | " + @board.slice(b, 8).map { | element | element = self.@symbol if element.class.name == "Piece" }.join(" | ").to_s + " |\n"
-# print " " + LETTERS[i] + " | " + @board.slice(b, 8).join(" | ").to_s + " |\n"
-
 class Piece
 
 end
@@ -111,7 +210,7 @@ end
 class Knight < Piece
     attr_accessor :position
     attr_reader :symbol
-    include Moves, Navigation
+    include Moves, Navigation, Calculate_Path
     STANDARD_MOVESET = [-17, -15, 17, 15, -10, 6, 10, -6]
 
     def initialize(board, player = 1)
@@ -129,10 +228,4 @@ end
 chess = Board.new
 chess.make_board
 horsey = Knight.new(chess)
-chess.display_board
-puts horsey.position
-puts horsey.convert_back_to_front(horsey.position)
-horsey.move_piece(chess, 0)
-chess.display_board
-puts horsey.position
-puts horsey.convert_back_to_front(horsey.position)
+horsey.shortest_path(61)
